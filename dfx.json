@@ -4,13 +4,13 @@
       "main": "src/nft-marketplace-backend/main.mo",
       "type": "motoko"
     },
+    "nft": {
+      "main": "src/nft-marketplace-backend/NFT/nft.mo",
+      "type": "motoko"
+    },
     "nft-marketplace-frontend": {
-      "dependencies": [
-        "nft-marketplace-backend"
-      ],
-      "source": [
-        "src/nft-marketplace-frontend/dist"
-      ],
+      "dependencies": ["nft-marketplace-backend"],
+      "source": ["src/nft-marketplace-frontend/dist"],
       "type": "assets",
       "workspace": "nft-marketplace-frontend"
     }

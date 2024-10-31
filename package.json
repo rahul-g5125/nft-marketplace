@@ -14,5 +14,8 @@
   "type": "module",
   "workspaces": [
     "src/nft-marketplace-frontend"
-  ]
+  ],
+  "dependencies": {
+    "isomorphic-fetch": "^3.0.0"
+  }
 }

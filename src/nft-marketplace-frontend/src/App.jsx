@@ -1,30 +1,58 @@
-import { useState } from 'react';
-import { nft_marketplace_backend } from 'declarations/nft-marketplace-backend';
+import React, { useEffect, useState } from "react";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import { Theme } from "@radix-ui/themes";
+import heroImg from "/home-img.png";
+import Minter from "./components/Minter";
+import Gallery from "./components/Gallery";
+import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { nft_marketplace_backend } from "../../declarations/nft-marketplace-backend";
+import { Principal } from "@dfinity/principal";
 
 function App() {
-  const [greeting, setGreeting] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
+  const [userOwnedGallery, setOwnedGallery] = useState();
 
-  function handleSubmit(event) {
-    event.preventDefault();
-    const name = event.target.elements.name.value;
-    nft_marketplace_backend.greet(name).then((greeting) => {
-      setGreeting(greeting);
-    });
-    return false;
+  function changeLDMode() {
+    setDarkMode(!darkMode);
   }
 
+  async function getOwnedNFTs() {
+    const userNFTIDs = await nft_marketplace_backend.getOwnedNFTs(
+      Principal.fromText("2vxsx-fae")
+    );
+    console.log(userNFTIDs);
+
+    setOwnedGallery(<Gallery title={"My NFTs"} ids={userNFTIDs} />);
+  }
+
+  useEffect(() => {
+    getOwnedNFTs();
+  }, []);
+
   return (
-    <main>
-      <img src="/logo2.svg" alt="DFINITY logo" />
-      <br />
-      <br />
-      <form action="#" onSubmit={handleSubmit}>
-        <label htmlFor="name">Enter your name: &nbsp;</label>
-        <input id="name" alt="Name" type="text" />
-        <button type="submit">Click Me!</button>
-      </form>
-      <section id="greeting">{greeting}</section>
-    </main>
+    <Theme appearance={darkMode ? "dark" : "light"}>
+      <div className="App">
+        <Header mode={darkMode} changeLDMode={changeLDMode} />
+        <div className="main">
+          <BrowserRouter basename="/">
+            <Routes>
+              <Route
+                exact
+                path="/"
+                element={
+                  <img src={heroImg} className="hero-image" alt="Hero Image" />
+                }
+              />
+              <Route path="/minter" element={<Minter />} />
+              <Route path="/discover" element={<Gallery title="Discover" />} />
+              <Route path="/collection" element={userOwnedGallery} />
+            </Routes>
+          </BrowserRouter>
+        </div>
+        <Footer />
+      </div>
+    </Theme>
   );
 }
 

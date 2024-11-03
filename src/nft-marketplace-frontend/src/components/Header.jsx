@@ -32,7 +32,6 @@ const Header = (props) => {
           >
             <Half2Icon
               height={"30px"}
-              width={"auto"}
               style={{ cursor: "pointer" }}
               onClick={changeMode}
             />

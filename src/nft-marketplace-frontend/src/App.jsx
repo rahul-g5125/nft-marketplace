@@ -5,25 +5,34 @@ import { Theme } from "@radix-ui/themes";
 import heroImg from "/home-img.png";
 import Minter from "./components/Minter";
 import Gallery from "./components/Gallery";
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { nft_marketplace_backend } from "../../declarations/nft-marketplace-backend";
 import { Principal } from "@dfinity/principal";
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [userOwnedGallery, setOwnedGallery] = useState();
+  const [listingGallery, setListingGallery] = useState();
 
   function changeLDMode() {
     setDarkMode(!darkMode);
   }
 
   async function getOwnedNFTs() {
-    const userNFTIDs = await nft_marketplace_backend.getOwnedNFTs(
+    const userNFTIds = await nft_marketplace_backend.getOwnedNFTs(
       Principal.fromText("2vxsx-fae")
     );
-    console.log(userNFTIDs);
+    console.log(userNFTIds);
 
-    setOwnedGallery(<Gallery title={"My NFTs"} ids={userNFTIDs} />);
+    setOwnedGallery(
+      <Gallery title={"My NFTs"} ids={userNFTIds} role="collection" />
+    );
+
+    const listedNFTIds = await nft_marketplace_backend.getListedNFTs();
+    console.log(listedNFTIds);
+    setListingGallery(
+      <Gallery title="Discover" ids={listedNFTIds} role="discover" />
+    );
   }
 
   useEffect(() => {
@@ -45,11 +54,12 @@ function App() {
                 }
               />
               <Route path="/minter" element={<Minter />} />
-              <Route path="/discover" element={<Gallery title="Discover" />} />
+              <Route path="/discover" element={listingGallery} />
               <Route path="/collection" element={userOwnedGallery} />
             </Routes>
           </BrowserRouter>
         </div>
+        <hr />
         <Footer />
       </div>
     </Theme>

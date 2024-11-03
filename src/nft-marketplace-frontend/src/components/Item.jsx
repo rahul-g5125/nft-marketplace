@@ -1,18 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { Card, Inset, Box } from "@radix-ui/themes";
+import {
+  Card,
+  Inset,
+  Box,
+  Heading,
+  Spinner,
+  Text,
+  TextField,
+} from "@radix-ui/themes";
 import { HttpAgent, Actor } from "@dfinity/agent";
 import { idlFactory } from "../../../declarations/nft";
-import { Principal } from "@dfinity/principal";
 import { nft_marketplace_backend } from "../../../declarations/nft-marketplace-backend";
 import fetch from "isomorphic-fetch";
-import Button from "./Button";
+import Sell from "./Sell";
+import { Principal } from "@dfinity/principal";
+import PriceLabel from "./PriceLabel";
+import { idlFactory as dtokenIDLFactory } from "../../../declarations/dtoken_backend";
 
 function Item(props) {
   const [name, setName] = useState("");
   const [owner, setOwner] = useState("");
   const [image, setImage] = useState("");
   const [button, setButton] = useState("");
-  const [princeInput, setPriceInput] = useState("");
+  const [priceInput, setPriceInput] = useState("");
+  const [loader, setLoader] = useState(false);
+  const [blur, setBlur] = useState();
+  const [sellStatus, setSellStatus] = useState();
+  const [priceLabel, setPriceLabel] = useState();
+  const [shouldDisplay, setDisplay] = useState(true);
   const id = props.id;
 
   const host =
@@ -32,16 +47,11 @@ function Item(props) {
 
   let NFTactor;
   async function loadNFT() {
-    // const authClient = await AuthClient.create();
-    // const identity = await authClient.getIdentity();
-
     NFTactor = Actor.createActor(idlFactory, {
       agent,
       canisterId: id,
     });
     const _name = await NFTactor.getName();
-
-    //console.log(name);
 
     setName(_name);
 
@@ -62,87 +72,116 @@ function Item(props) {
 
     setOwner(_owner);
 
-    setButton(<Button handleClick={handleSell} text={"Sell"} />);
+    if (props.role == "collection") {
+      const NFTisListed = await nft_marketplace_backend.isListed(id);
+      if (NFTisListed) {
+        setOwner("Drag Race");
+        setBlur({ filter: "blur(4px)" });
+        setSellStatus("Listed");
+      } else {
+        setButton(<Sell handleClick={handleSell} text={"Sell"} />);
+      }
+    } else if (props.role == "discover") {
+      const originalOwner = await nft_marketplace_backend.getOriginalOwner(id);
+      if (originalOwner.toString() != "2vxsx-fae") {
+        setButton(<Sell handleClick={handleBuy} text="Buy" />);
+      }
+      const price = await nft_marketplace_backend.getListedNFTPrice(id);
+      setPriceLabel(<PriceLabel sellPrice={price.toString()} />);
+    }
   }
 
-  // async function loadNFT() {
-  //   const _name = await nft.getName();
-  //   const _imageBytes = await nft.getImage();
-
-  //   const _owner = await nft.getOwner();
-  //   setName(_name);
-
-  //   const imageContent = new Uint8Array(_imageBytes);
-  //   const blob = new Blob([imageContent], { type: "image/png" });
-
-  //   const reader = new FileReader();
-  //   reader.onload = function (event) {
-  //     const dataUrl = event.target.result;
-  //     setImage(dataUrl);
-  //   };
-  //   reader.readAsDataURL(blob);
-
-  //   setOwner(_owner);
-  // }
   let price;
+
+  async function handleBuy() {
+    console.log("Buy is triggered");
+    setLoader(true);
+    const tokenActor = await Actor.createActor(dtokenIDLFactory, {
+      agent,
+      canisterId: Principal.fromText("a3shf-5eaaa-aaaaa-qaafa-cai"),
+    });
+
+    const sellerId = await nft_marketplace_backend.getOriginalOwner(id);
+    const itemPrice = await nft_marketplace_backend.getListedNFTPrice(id);
+    const result = await tokenActor.transfer(sellerId, itemPrice);
+
+    if (result == "Success") {
+      const transferResult = await nft_marketplace_backend.completePurchase(
+        id,
+        sellerId,
+        Principal.fromText("2vxsx-fae")
+      );
+      console.log("Transfer Result: " + transferResult);
+    }
+    setDisplay(false);
+    setLoader(false);
+  }
   function handleSell() {
     setPriceInput(
-      <input
+      <TextField.Root
         placeholder="Price in DRAG"
         type="number"
-        className="price-input"
         value={price}
+        style={{ marginTop: "10%", marginBottom: "4%" }}
         onChange={(e) => (price = e.target.value)}
       />
     );
-    setButton(<Button handleClick={sellItem} text={"Confirm"} />);
+    setButton(<Sell handleClick={sellItem} text={"Confirm"} />);
+
     console.log("Sell Clicked!");
   }
 
   async function sellItem() {
+    setBlur({ filter: "blur(4px)" });
+    setLoader(true);
     console.log("set price = " + price);
     const status = await nft_marketplace_backend.listItem(
       props.id,
       Number(price)
     );
     console.log("Listing Result: " + status);
-    if (status == "success") {
+    if (status == "Success") {
       const result = await NFTactor.transferOwnerShip(
-        process.env.CANISTER_ID_NFT_MARKETPLACE_BACKEND
+        Principal.fromText(process.env.CANISTER_ID_NFT)
       );
       console.log("Transfer Result: " + result);
     }
+    setLoader(false);
+
+    setButton("");
+    setPriceInput("");
+    setOwner("Drag Race");
   }
   useEffect(() => {
     loadNFT();
   }, []);
 
   return (
-    <Box maxWidth="240px">
-      <Card size="2">
+    <Box style={{ display: shouldDisplay ? "inline" : "none" }}>
+      <Card size="5" style={{ boxShadow: "rgba(0, 0, 0, 0.24) 0px 3px 8px" }}>
         <Inset clip="padding-box" side="top" pb="current">
           <img
-            className="disCardMedia-root makeStyles-image-19 disCardMedia-media disCardMedia-img"
             style={{
+              blur,
               display: "block",
               objectFit: "cover",
               width: "100%",
               height: "auto",
-              backgroundColor: "var(--gray-5)",
-              border: "solid 2px",
             }}
             src={image}
           />
         </Inset>
-        <div>
-          <h2>
-            {name}
-            <span className="purple-text"></span>
-          </h2>
-          <p>Owner: {owner.toString()}</p>
-          {princeInput}
-          {button}
-        </div>
+        <Heading>{name}</Heading>
+        {priceLabel}
+
+        <p>Owner: {owner.toString()}</p>
+        <Text as="p" style={{ fontWeight: "bolder" }}>
+          {" "}
+          {sellStatus}
+        </Text>
+        {priceInput}
+        <Spinner size="5" loading={loader} />
+        {button}
       </Card>
     </Box>
   );

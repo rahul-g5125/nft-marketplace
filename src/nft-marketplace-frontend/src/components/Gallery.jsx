@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Item from "./Item";
 import { Principal } from "@dfinity/principal";
-import { Heading } from "@radix-ui/themes";
+import { Box, Grid, Heading } from "@radix-ui/themes";
 
 function Gallery(props) {
   const [items, setItems] = useState();
@@ -9,7 +9,9 @@ function Gallery(props) {
   function fetchNFTS() {
     if (props.ids != undefined) {
       setItems(
-        props.ids.map((NFTId) => <Item id={NFTId} key={NFTId.toText()} />)
+        props.ids.map((NFTId) => (
+          <Item id={NFTId} key={NFTId.toText()} role={props.role} />
+        ))
       );
     } else {
       console.log("Byee....");
@@ -20,7 +22,7 @@ function Gallery(props) {
     fetchNFTS();
   }, []);
   return (
-    <div>
+    <Box style={{ margin: "0 12%" }}>
       <Heading
         align={"center"}
         as="h1"
@@ -29,8 +31,11 @@ function Gallery(props) {
       >
         {props.title}
       </Heading>
-      <div>{items}</div>
-    </div>
+      <hr style={{ width: "40%", margin: "40px auto" }} />
+      <Grid columns="3" gap="5" width="auto">
+        {items}
+      </Grid>
+    </Box>
   );
 }
 
